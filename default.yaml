@@ -1,0 +1,133 @@
+# IntelliNav3D - default configuration.
+# Every value that is stated in the manuscript is marked "paper: <section/table>".
+# Values the manuscript does not state are marked "not in paper" with the value chosen here.
+
+paths:
+  front3d_dir: data/raw/3D-FRONT            # house JSON files (3D-FRONT)
+  future_dir: data/raw/3D-FUTURE-model      # 3D-FUTURE models (model_info.json + <jid>/raw_model.obj)
+  scenes_dir: data/scenes                   # one JSON per room after preprocessing
+  split_file: data/split.json
+  stats_file: data/train_stats.json         # pairwise-distance priors (SC, template graph)
+  runs_dir: runs                            # checkpoints, generated scenes, metrics
+  results_dir: results                      # tables and figures
+
+data:
+  room_types: [bedroom, livingroom, diningroom, kitchen]     # paper: 4.3
+  max_objects: 25                           # not in paper (ATISS uses <= 21 for living rooms)
+  min_objects: 2                            # not in paper (quality control)
+  max_room_extent: 12.0                     # m, not in paper (quality control)
+  split:                                    # paper: 4.1.1
+    seed: 42
+    n_train: 15200
+    n_val: 1000
+    n_test: 2800
+    near_duplicate_round: 0.1               # m; rooms with equal rounded floor extents and category sets are near-duplicates (not in paper)
+
+graph:                                      # paper: 3.2, Fig. 3
+  distance_threshold: 2.0                   # m (paper: Fig. 3 uses 2.0 m; Table 14 tests 1.0/1.5/2.0)
+  relation_types: [none, near, functional, support]
+
+gat:                                        # paper: Table 2, Table 10
+  hidden_dim: 128
+  heads: 8
+  layers: 2                                 # not in paper
+  cat_embed_dim: 32                         # not in paper
+  lr: 0.0003
+  batch_size: 32
+  epochs: 50                                # not in paper (pre-training of the relation encoder)
+  prior_distance_dropout: 0.5               # not in paper (see README, "GAT training objective")
+
+ddpm:                                       # paper: 3.3, Table 2, Table 10
+  timesteps: 1000
+  beta_start: 0.0001                        # not in paper (standard DDPM linear schedule)
+  beta_end: 0.02                            # not in paper
+  model_dim: 256                            # not in paper (denoiser width)
+  layers: 6                                 # not in paper
+  heads: 8
+  lr: 0.0003
+  batch_size: 32
+  epochs: 200
+  early_stop_patience: 20                   # paper: 4.1.1 says validation set used for early stopping
+  lambda_spatial: 0.1                       # paper Eq. (8) lambda; value not in paper
+  nav_cond_dropout: 0.1                     # not in paper (classifier-free guidance)
+  guidance_scale: 2.0                       # not in paper
+  nav_target: [0.97, 0.96]                  # target (ANS, HC) used as navigation condition at sampling; not in paper
+  floor_mask_res: 64                        # not in paper
+  candidates_per_room: 4                    # r in Algorithm 3; value not in paper
+
+navigation:                                 # paper: Algorithm 2, 4.1.2
+  cell_size: 0.05                           # m
+  robot_radius: 0.175                       # m
+  robot_height: 0.12                        # m; objects whose bottom is higher do not block (not in paper)
+  v_max: 0.5                                # m/s
+  w_max: 1.0                                # rad/s
+  pairs_per_scene: 10
+  min_pair_distance: 2.0                    # m
+  goal_tolerance: 0.10                      # m
+  max_steps: 500
+  d_max: 0.5                                # reference clearance for C_s; value not in paper
+  ans_weights: [0.3333333333, 0.3333333333, 0.3333333334]   # alpha, beta, gamma (paper: equal weights)
+  snap_radius: 0.5                          # m; start/goal snapped to nearest free cell (not in paper)
+  dwa:                                      # Dynamic Window Approach (paper: 4.1.2); parameters not in paper
+    dt: 0.1
+    horizon: 1.5
+    v_samples: 7
+    w_samples: 15
+    v_acc: 1.0
+    w_acc: 2.0
+    lookahead: 0.6
+    w_goal: 1.0
+    w_head: 0.3
+    w_clear: 0.2
+    w_speed: 0.2
+    clear_ref: 0.3
+
+collision:                                  # paper: 3.5
+  clearance: 0.35                           # c_ij for non-functional pairs (robot diameter)
+  functional_clearance: 0.0
+
+monff:                                      # paper: 3.6, 3.7
+  weights: [0.2, 0.2, 0.2, 0.2, 0.2]        # w1..w5 for NS, Cs, As, SC, HC
+  collision_lambda: 0.5
+  comfort_distance: 0.60                    # d_c for Human Comfort (Eq. 16)
+
+ppo:                                        # paper: 3.6, 3.8, Table 10
+  clip: 0.2
+  epochs: 10
+  gamma: 0.99
+  gae_lambda: 0.95
+  lr: 0.0003
+  minibatch_size: 32
+  rollout_steps: 2048                       # not in paper
+  total_steps: 300000                       # not in paper
+  model_dim: 128                            # not in paper
+  entropy_coef: 0.01                        # not in paper
+  value_coef: 0.5                           # not in paper
+  max_grad_norm: 0.5                        # not in paper
+  n_train_layouts: 3000                     # generated training layouts used as PPO start states; not in paper
+  max_move: 0.25                            # m  (paper: 3.8)
+  max_rotate_deg: 15.0                      # deg (paper: 3.8)
+  max_steps: 50                             # T_max (paper: 3.8)
+  patience: 10                              # "MONFF stops improving" -> steps without improvement; not in paper
+  invalid_penalty: -2.0                     # paper: 3.8
+  displacement_lambda: 0.05                 # lambda_d (paper: 3.8); value not in paper
+  door_keepout: 0.50                        # m (paper: 3.8)
+  wall_tolerance: 0.05                      # m (paper: 3.8)
+  wall_contact_distance: 0.10               # m; object closer than this to a wall is "wall-aligned" (not in paper)
+
+fid:                                        # paper: 4.8
+  image_size: 256
+  n_samples: 1000
+
+experiments:
+  seeds: [0, 1, 2, 3, 4, 5]                 # paper: 4.7, n = 6
+  ablations: [full, no_gat, no_ddpm, no_ppo, no_monff]          # paper: Table 8
+  heldout_room_type: diningroom             # Table 15 "held-out room type"; choice not in paper
+  sensitivity:                              # paper: 4.10, Table 14
+    gat.hidden_dim: [64, 128, 256]
+    gat.heads: [4, 8, 16]
+    ddpm.timesteps: [500, 1000, 2000]
+    ppo.clip: [0.1, 0.2, 0.3]
+    monff.collision_lambda: [0.5, 1.0, 1.5]
+    graph.distance_threshold: [1.0, 1.5, 2.0]
+    monff.weights: [equal, perturb]

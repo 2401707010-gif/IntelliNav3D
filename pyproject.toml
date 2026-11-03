@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "intellinav3d"
+version = "1.0.0"
+description = "IntelliNav3D: navigation-aware indoor scene synthesis (GAT + navigation-conditioned DDPM + constrained PPO + MONFF)"
+requires-python = ">=3.9"
+
+[tool.setuptools.packages.find]
+include = ["intellinav3d*"]
